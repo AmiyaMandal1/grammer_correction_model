@@ -7,8 +7,9 @@ Builds `gec_tagger.jsonl` and `style_sft.jsonl` from public corpora.
 ```
 cd data-pipeline
 uv sync --extra dev
-uv run python -m spacy download en_core_web_sm
 ```
+
+The spaCy model `en_core_web_sm` is locked as a dependency, so no manual download is required.
 
 ## Run
 
