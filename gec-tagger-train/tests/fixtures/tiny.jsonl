@@ -1,0 +1,4 @@
+{"tokens":["he","go","home"],"tags":["$KEEP","$REPLACE_goes","$KEEP"],"source":"t","split":"train","meta":{}}
+{"tokens":["i","am","happy"],"tags":["$KEEP","$KEEP","$KEEP"],"source":"t","split":"train","meta":{}}
+{"tokens":["the","cat","sit"],"tags":["$KEEP","$KEEP","$REPLACE_sits"],"source":"t","split":"train","meta":{}}
+{"tokens":["he","goes"],"tags":["$KEEP","$REPLACE_goes"],"source":"t","split":"train","meta":{}}
