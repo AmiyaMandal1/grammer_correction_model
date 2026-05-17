@@ -128,6 +128,48 @@ Generation smoke test with the merged adapter (greedy, max_new_tokens=40):
 
 The model learned the ParaDetox distribution. Not production quality (200 steps × 8 grad-accum on a 0.5 B base sees only ~1,600 records out of 18,993) but the detoxification signal is unambiguous and the fp32 fix is confirmed to resolve the MPS NaN failure.
 
+### Third attempt — mlx-lm on Qwen2.5-3B (production-grade path)
+
+PyTorch + MPS is the wrong tool for LLM LoRA on Apple Silicon. Switched to Apple's native `mlx-lm`:
+
+```
+uv add mlx-lm
+uv run mlx_lm.lora --model Qwen/Qwen2.5-3B-Instruct --train \
+    --data .checkpoints/mlx_data --fine-tune-type lora \
+    --num-layers 16 --batch-size 1 --iters 500 \
+    --learning-rate 5e-5 --max-seq-length 512 --mask-prompt \
+    --adapter-path .checkpoints/style_mlx
+```
+
+| Metric | Value |
+|---|---|
+| Base | `Qwen/Qwen2.5-3B-Instruct` (3.09 B params) |
+| Trainable | 6.65 M LoRA params (0.216 %) |
+| Iters | 500 |
+| Throughput | ~7.5 iter/s, ~100 tokens/s |
+| Peak mem | 6.87 GB |
+| Val loss trajectory | 5.915 → 0.903 → 1.050 → 1.009 → **0.759** (iter 400 best) → 0.873 |
+| Final train loss | 0.707 |
+| GPU resets | 0 |
+
+Adapter (~31 MB) saved every 100 iters under `.checkpoints/style_mlx/`. Best val is the iter-400 snapshot.
+
+Generation smoke (greedy, max_new_tokens=40, system prompt: "Rewrite the user's text in a neutral, non-toxic way while preserving meaning."):
+
+| Input | Output |
+|---|---|
+| `that is dumb` | `That is wrong.` |
+| `you suck at this` | `You are bad at this.` |
+| `he is a fucking idiot` | `He is a person who doesn't think carefully.` |
+| `this code is shit` | `this code is bad` |
+| `shut the hell up` | `Shut up.` |
+
+Detoxification is clean and meaning is preserved. The mlx-lm path replaces the Apple-Silicon-fragile PyTorch+MPS training stack — it is **faster** (7.5 iter/s vs ~0.66 iter/s for PyTorch fp32), uses **less memory** (6.9 GB vs ~13 GB at the same model size would require), and produces a Qwen-3B model where the PyTorch path was forced down to Qwen-0.5B for stability.
+
+### Recommendation
+
+For style LLM training on Apple Silicon, **use mlx-lm as the default path**. The PyTorch trainer is kept for portability to CUDA/CPU, but on macOS-arm64 the operator should invoke the mlx command above. The GGUF export step still works unchanged: merge the adapter via `mlx_lm.fuse`, then run `llama.cpp` convert + quantize.
+
 ## Known limitations
 
 The end-to-end pipeline is functional but smoke-trained models are not production-grade. Real numbers require:

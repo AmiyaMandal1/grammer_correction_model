@@ -19,6 +19,7 @@ dependencies = [
     "rich>=13.7",
     "sentencepiece>=0.2.1",
     "tiktoken>=0.13.0",
+    "mlx-lm>=0.31.3",
 ]
 
 [project.optional-dependencies]
