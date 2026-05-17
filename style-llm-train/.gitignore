@@ -1,0 +1,17 @@
+models/
+outputs/
+.checkpoints/
+data/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+dist/
+*.egg-info/
+*.gguf
+*.safetensors
+wandb/
