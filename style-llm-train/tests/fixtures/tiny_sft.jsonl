@@ -1,0 +1,3 @@
+{"messages":[{"role":"system","content":"Rewrite formally."},{"role":"user","content":"yo whats up"},{"role":"assistant","content":"Hello, how are you?"}],"meta":{"source":"gyafc","style_target":"formal"}}
+{"messages":[{"role":"system","content":"Rewrite simply."},{"role":"user","content":"He is an erudite gentleman."},{"role":"assistant","content":"He is a smart man."}],"meta":{"source":"wiki_auto","style_target":"simplify"}}
+{"messages":[{"role":"system","content":"Detoxify."},{"role":"user","content":"that is dumb"},{"role":"assistant","content":"that is not helpful"}],"meta":{"source":"paradetox","style_target":"detoxify"}}

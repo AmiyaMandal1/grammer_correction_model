@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/gec-core",
+    "crates/gec-tokenizer",
+    "crates/gec-fastpass",
+    "crates/gec-deeppass",
+    "crates/gec-aligner",
+    "crates/gec-cli",
+    "crates/gec-server",
+]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.80"
+license = "Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+anyhow = "1"
+thiserror = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1.40", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+axum = "0.7"
+clap = { version = "4.5", features = ["derive"] }
+tokenizers = { version = "0.20", default-features = false, features = ["onig"] }
+ort = { version = "2.0.0-rc.4", default-features = false, features = ["ndarray"] }
+ndarray = "0.16"
+llama-cpp-2 = "0.1"
+proptest = "1.5"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

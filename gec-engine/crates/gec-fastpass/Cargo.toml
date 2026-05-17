@@ -1,0 +1,20 @@
+[package]
+name = "gec-fastpass"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+gec-core = { path = "../gec-core" }
+gec-tokenizer = { path = "../gec-tokenizer" }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+ndarray = { workspace = true }
+ort = { workspace = true, optional = true }
+
+[features]
+default = []
+ort-runtime = ["dep:ort"]
