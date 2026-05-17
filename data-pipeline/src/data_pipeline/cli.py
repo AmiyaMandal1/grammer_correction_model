@@ -42,7 +42,10 @@ def _load_gec_sources(
         elif name == "conll2014":
             yield from CoNLL2014Source(config=cfg).iter_pairs()
         elif name == "c4_200m":
-            yield from C4200MSource(config=cfg).iter_pairs()
+            import os
+
+            cap = int(os.environ.get("C4_200M_MAX_ROWS", "2000000"))
+            yield from C4200MSource(config=cfg, max_rows=cap).iter_pairs()
         else:
             raise typer.BadParameter(f"unknown GEC source: {name}")
 
