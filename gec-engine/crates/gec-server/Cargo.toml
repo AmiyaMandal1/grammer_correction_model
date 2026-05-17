@@ -1,0 +1,30 @@
+[package]
+name = "gec-server"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "gec_server"
+path = "src/lib.rs"
+
+[[bin]]
+name = "gec-server"
+path = "src/main.rs"
+
+[dependencies]
+gec-core = { path = "../gec-core" }
+axum = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
