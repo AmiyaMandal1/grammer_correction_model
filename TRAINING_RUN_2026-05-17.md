@@ -105,9 +105,28 @@ if not on_mps:
         pass
 ```
 
-### Second attempt — pending
+### Second attempt — success
 
-Retraining with fp32 on MPS, same hyperparameters. Result will be appended to this report once complete.
+Same hyperparameters, fp32 base on MPS, gradient checkpointing off.
+
+| Metric | Value |
+|---|---|
+| Train runtime | 228.6 s (≈4 min) |
+| Train loss | 1.61 |
+| Entropy | 1.506 |
+| Mean token accuracy | 0.7293 |
+| GPU recovery count | 0 (no Metal resets) |
+| Adapter | `style-llm-train/.checkpoints/style/adapter_model.safetensors` (35 MB) |
+
+Generation smoke test with the merged adapter (greedy, max_new_tokens=40):
+
+| Input | Output |
+|---|---|
+| `that is dumb` | `That is not good` |
+| `you suck at this` | `You are not good at this` |
+| `he is a fucking idiot` | `He is a fool` |
+
+The model learned the ParaDetox distribution. Not production quality (200 steps × 8 grad-accum on a 0.5 B base sees only ~1,600 records out of 18,993) but the detoxification signal is unambiguous and the fp32 fix is confirmed to resolve the MPS NaN failure.
 
 ## Known limitations
 
