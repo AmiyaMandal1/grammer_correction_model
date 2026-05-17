@@ -181,3 +181,84 @@ The end-to-end pipeline is functional but smoke-trained models are not productio
 5. **mlx-lm for the style LLM**: faster + native on M-series than PyTorch+MPS. Switch when scaling beyond 0.5 B params.
 
 Open follow-ups already tracked in each sub-project's `FOLLOWUPS.md`.
+
+## Long mlx-lm runs (parallel)
+
+Style and GEC both fine-tuned with `mlx_lm.lora` on Qwen2.5-3B-Instruct, 3000 iters each, running in parallel on the same M2 Max. GEC reformulates the GECToR task as instruction-tuned correction (system: "Correct the grammar of the user text. Preserve meaning.", user: source, assistant: target). 2,229 training pairs derived from the data-pipeline JFLEG output.
+
+### Style (long, 3000 iters target, stopped early at iter 2050)
+
+Val loss trajectory:
+
+| Iter | Val | |
+|---|---|---|
+| 1 | 5.842 | baseline |
+| 200 | 0.762 | |
+| 400 | 0.770 | |
+| 600 | 0.817 | |
+| 800 | 0.810 | |
+| 1000 | 0.800 | |
+| **1200** | **0.741** | **best** |
+| 1400 | 0.824 | |
+| 1600 | 0.770 | |
+| 1800 | 0.884 | |
+| 2000 | 0.940 | overfit confirmed; killed |
+
+Promoted `0001200_adapters.safetensors` to `adapters.safetensors`.
+
+### GEC instruction-tuned (3000 iters target, stopped at iter 1600)
+
+Val loss trajectory:
+
+| Iter | Val | |
+|---|---|---|
+| 1 | 3.796 | baseline |
+| 200 | 0.581 | |
+| 400 | 0.554 | |
+| 600 | 0.536 | |
+| 800 | 0.540 | |
+| **1000** | **0.520** | **best** |
+| 1200 | 0.556 | |
+| 1400 | 0.577 | |
+| 1600 | 0.579 | overfit confirmed; killed |
+
+Promoted `0001000_adapters.safetensors` to `adapters.safetensors`.
+
+### Generation smoke (best adapters)
+
+GEC, iter-1000 adapter:
+
+| In | Out |
+|---|---|
+| `he go to school` | `He goes to school .` |
+| `I are happy` | `I am happy .` |
+| `she have a cat` | `She has a cat .` |
+| `they was tired` | `They were tired .` |
+| `she walk fast` | `She walks fast .` |
+
+5/5 correct grammar corrections. Trailing space + period are an artifact of the JFLEG whitespace tokenization preserved through the data-pipeline; a post-processor can strip them.
+
+Style, iter-1200 adapter:
+
+| In | Out |
+|---|---|
+| `that is dumb` | `That is not smart` |
+| `you suck at this` | `You are not good at this.` |
+| `he is a fucking idiot` | `He is not a smart person.` |
+| `this code is shit` | `This code is bad.` |
+| `shut the hell up` | `Shhh` |
+
+Cleaner detoxification than the 500-iter run (`He is a person who doesn't think carefully.` → `He is not a smart person.`).
+
+### Throughput note
+
+Running both jobs in parallel: each ran at ~2.0-2.3 it/s (vs ~7.5 it/s solo), so the two-job throughput is roughly 4 it/s combined — slightly less than 7.5 solo, the GPU contention overhead is ~50%. Sequential runs would be faster total wall-clock if the GPU is the bottleneck.
+
+## Final artifacts (this run)
+
+| Adapter | Path (gitignored) | Size | Val loss |
+|---|---|---|---|
+| Style detox | `style-llm-train/.checkpoints/style_mlx_long/adapters.safetensors` (= iter 1200) | ~31 MB | 0.741 |
+| GEC correction | `gec-tagger-train/.checkpoints/gec_mlx/adapters.safetensors` (= iter 1000) | ~31 MB | 0.520 |
+
+Both adapters compose with `Qwen/Qwen2.5-3B-Instruct` via `mlx_lm.generate --adapter-path …`.
