@@ -31,17 +31,25 @@ def run_sft_training(*, cfg: TrainConfig) -> dict[str, float]:
     formatted = [_format_chatml(r, tokenizer) for r in records]
     ds = Dataset.from_list(formatted)
 
+    # Apple Silicon MPS + fp16 + Qwen RMSNorm/rotary embeds = kIOGPUCommandBuffer
+    # errors that put the Metal queue into "ignore" mode mid-training. Load the
+    # base in fp32 on MPS and skip gradient checkpointing (the other half of the
+    # crash trigger). bf16 is also unsafe under the same combo on M2 family.
+    import platform
+
+    on_mps = platform.system() == "Darwin" and platform.machine() == "arm64"
+    dtype = torch.float32 if on_mps else torch.float16
     base = AutoModelForCausalLM.from_pretrained(
         cfg.base_model,
-        torch_dtype=torch.float16,
+        torch_dtype=dtype,
         trust_remote_code=True,
     )
-    # Disable KV cache (required for gradient checkpointing on MPS/CPU)
     base.config.use_cache = False
-    try:
-        base.gradient_checkpointing_enable()  # type: ignore[no-untyped-call]
-    except Exception:
-        pass  # Not all models support gradient checkpointing; safe to skip
+    if not on_mps:
+        try:
+            base.gradient_checkpointing_enable()  # type: ignore[no-untyped-call]
+        except Exception:
+            pass
 
     model = get_peft_model(base, build_lora_config())
 

@@ -16,3 +16,4 @@ dist/
 wandb/
 eval_data/*
 !eval_data/synthetic_*.jsonl
+!eval_data/jfleg_test.jsonl
