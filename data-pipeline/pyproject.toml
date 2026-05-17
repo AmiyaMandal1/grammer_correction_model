@@ -9,9 +9,9 @@ dependencies = [
     "datasets>=2.20",
     "xxhash>=3.4",
     "spacy>=3.7,<3.8",
+    "en-core-web-sm",
     "errant>=3.0.0",
     "rich>=13.7",
-    "numpy>=1.25,<2",
 ]
 
 [project.optional-dependencies]
@@ -47,3 +47,11 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"
 testpaths = ["tests"]
+
+[tool.uv]
+# Pin numpy to 1.x because thinc 8.2.x (transitive via spaCy 3.7) is built
+# against numpy 1.x ABI and crashes at import time with numpy 2.x.
+constraint-dependencies = ["numpy>=1.25,<2"]
+
+[tool.uv.sources]
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl" }
