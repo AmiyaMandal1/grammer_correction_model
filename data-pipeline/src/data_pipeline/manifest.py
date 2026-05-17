@@ -41,9 +41,12 @@ class ManifestBuilder:
         """`None` means leakage check was not run for this build."""
         self._leakage_passed = passed
 
-    def write(self) -> Path:
-        out = self.out_dir / "manifest.json"
+    SCHEMA_VERSION = "1"
+
+    def write(self, filename: str = "manifest.json") -> Path:
+        out = self.out_dir / filename
         payload: dict[str, Any] = {
+            "schema_version": self.SCHEMA_VERSION,
             "generated_at": datetime.now(UTC).isoformat(),
             "artifacts": self._artifacts,
             "sources": self._sources,

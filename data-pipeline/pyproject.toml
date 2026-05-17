@@ -5,7 +5,6 @@ description = "Corpus preparation for GEC tagger + style LLM training"
 requires-python = ">=3.11,<3.12"
 dependencies = [
     "typer>=0.12",
-    "polars>=1.0",
     "datasets>=2.20",
     "xxhash>=3.4",
     "spacy>=3.7,<3.8",

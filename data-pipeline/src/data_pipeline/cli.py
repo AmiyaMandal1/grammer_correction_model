@@ -110,7 +110,7 @@ def build_gec(
         mb.add_source(name=name, row_count=per_source, retained=retained)
     mb.set_dedup(removed_exact=dedup_stats.removed_exact)
     mb.set_leakage_passed(leakage_passed)
-    mb.write()
+    mb.write("manifest_gec.json")
     typer.echo(f"wrote {written} records to {out}")
 
 
@@ -140,7 +140,7 @@ def build_sft(
         mb.add_source(name=name, row_count=per_source, retained=retained)
     mb.set_dedup(removed_exact=dedup_stats.removed_exact)
     mb.set_leakage_passed(None)
-    mb.write()
+    mb.write("manifest_sft.json")
     typer.echo(f"wrote {written} records to {out}")
 
 

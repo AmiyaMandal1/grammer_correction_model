@@ -29,7 +29,7 @@ def test_build_gec_only_from_local_m2(tmp_path: Path, fixtures_dir: Path) -> Non
     assert result.exit_code == 0, result.output
 
     out_jsonl = tmp_path / "data" / "processed" / "gec_tagger.jsonl"
-    out_manifest = tmp_path / "data" / "processed" / "manifest.json"
+    out_manifest = tmp_path / "data" / "processed" / "manifest_gec.json"
     assert out_jsonl.exists()
     assert out_manifest.exists()
 
