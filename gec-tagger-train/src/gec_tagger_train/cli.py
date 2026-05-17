@@ -60,19 +60,41 @@ def train(
 @app.command("export")
 def export(
     checkpoint: Path = typer.Option(..., exists=True),
-    out: Path = typer.Option(...),
+    tags: Path = typer.Option(..., exists=True, help="tags.json from build-vocab"),
+    out: Path = typer.Option(
+        ...,
+        help="Output ONNX file. tags.json + tokenizer co-located in the same dir.",
+    ),
     max_length: int = typer.Option(128),
     opset: int = typer.Option(17),
 ) -> None:
+    """Export checkpoint to ONNX and co-locate `tags.json` + tokenizer files in the same dir."""
+    import shutil
+
     from gec_tagger_train.export_onnx import export_tagger_to_onnx
     from gec_tagger_train.model import DebertaTagger
 
     state = _load_state_dict(checkpoint)
     num_tags = int(state["classifier.weight"].shape[0])
     model = DebertaTagger(num_tags=num_tags)
-    model.load_state_dict(state, strict=False)
+    result = model.load_state_dict(state, strict=False)
+    missing = [k for k in result.missing_keys if not k.startswith("encoder.")]
+    if missing:
+        raise RuntimeError(
+            f"checkpoint missing non-encoder keys: {missing}; cannot export"
+        )
+
+    out.parent.mkdir(parents=True, exist_ok=True)
     export_tagger_to_onnx(model=model, out_path=out, max_length=max_length, opset=opset)
-    typer.echo(f"exported ONNX to {out}")
+
+    # Co-locate tags.json so gec-engine can resolve logit ids back to tag strings.
+    shutil.copy(tags, out.parent / "tags.json")
+
+    # Co-locate the DeBERTa tokenizer for the Rust runtime.
+    tok = AutoTokenizer.from_pretrained("microsoft/deberta-v3-base", use_fast=True)
+    tok.save_pretrained(str(out.parent))
+
+    typer.echo(f"exported ONNX to {out}; tags.json + tokenizer in {out.parent}")
 
 
 def _load_state_dict(checkpoint: Path) -> dict[str, Any]:

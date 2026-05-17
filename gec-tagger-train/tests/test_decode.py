@@ -24,3 +24,23 @@ def test_append_inserts_after_anchor() -> None:
 def test_unknown_tag_treated_as_keep() -> None:
     out = apply_tags_once(["he", "go"], ["$KEEP", "$WAT"])
     assert out == ["he", "go"]
+
+
+def test_transform_case_lower() -> None:
+    out = apply_tags_once(["HELLO", "World"], ["$TRANSFORM_CASE_LOWER", "$KEEP"])
+    assert out == ["hello", "World"]
+
+
+def test_transform_case_upper() -> None:
+    out = apply_tags_once(["hello"], ["$TRANSFORM_CASE_UPPER"])
+    assert out == ["HELLO"]
+
+
+def test_transform_case_capital() -> None:
+    out = apply_tags_once(["hello"], ["$TRANSFORM_CASE_CAPITAL"])
+    assert out == ["Hello"]
+
+
+def test_transform_verb_falls_through_as_keep() -> None:
+    out = apply_tags_once(["go"], ["$TRANSFORM_VERB_VB_VBZ"])
+    assert out == ["go"]
