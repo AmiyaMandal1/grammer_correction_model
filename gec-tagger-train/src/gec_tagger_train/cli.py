@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
+import torch
 import typer
 from transformers import AutoTokenizer
 
@@ -97,9 +100,81 @@ def export(
     typer.echo(f"exported ONNX to {out}; tags.json + tokenizer in {out.parent}")
 
 
-def _load_state_dict(checkpoint: Path) -> dict[str, Any]:
-    import torch
+def _iter_dev_pairs(path: Path) -> Iterator[tuple[str, str]]:
+    """Yield (src, ref) tuples from a JSONL file with {src, ref} records."""
+    with path.open() as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line:
+                continue
+            rec = json.loads(line)
+            yield rec["src"], rec["ref"]
 
+
+@app.command("eval")
+def eval_cmd(
+    checkpoint: Path = typer.Option(..., exists=True),
+    tags: Path = typer.Option(..., exists=True),
+    dev: Path = typer.Option(..., exists=True, help="JSONL with {src, ref} per row"),
+    max_length: int = typer.Option(128),
+) -> None:
+    """Run a tagger checkpoint on a dev JSONL and print ERRANT F0.5."""
+    from gec_tagger_train.decode import apply_tags_once
+    from gec_tagger_train.eval_errant import compute_errant_f05
+    from gec_tagger_train.model import DebertaTagger
+
+    vocab = TagVocab.load(tags)
+    tok = AutoTokenizer.from_pretrained("microsoft/deberta-v3-base", use_fast=True)
+
+    state = _load_state_dict(checkpoint)
+    num_tags = int(state["classifier.weight"].shape[0])
+    model = DebertaTagger(num_tags=num_tags)
+    model.load_state_dict(state, strict=False)
+    model.eval()
+
+    srcs: list[str] = []
+    refs: list[str] = []
+    hyps: list[str] = []
+    with torch.no_grad():
+        for src, ref in _iter_dev_pairs(dev):
+            words = src.split()
+            if not words:
+                continue
+            enc = tok(
+                words,
+                is_split_into_words=True,
+                return_tensors="pt",
+                truncation=True,
+                max_length=max_length,
+            )
+            logits = model(
+                input_ids=enc["input_ids"], attention_mask=enc["attention_mask"]
+            )["logits"]
+            preds = logits.argmax(dim=-1)[0].tolist()
+            word_ids = enc.word_ids(0)
+            # First-subword strategy: keep prediction for the first subword of each word.
+            seen: set[int] = set()
+            word_tag_ids: list[int] = [vocab.id_of("$KEEP")] * len(words)
+            for pos, w in enumerate(word_ids):
+                if w is None or w in seen:
+                    continue
+                seen.add(w)
+                if w < len(word_tag_ids):
+                    word_tag_ids[w] = preds[pos]
+            word_tags = [
+                vocab.tags[i] if 0 <= i < len(vocab.tags) else "$KEEP"
+                for i in word_tag_ids
+            ]
+            hyp_words = apply_tags_once(words, word_tags)
+            srcs.append(src)
+            refs.append(ref)
+            hyps.append(" ".join(hyp_words))
+
+    score = compute_errant_f05(src=srcs, ref=refs, hyp=hyps)
+    typer.echo(json.dumps(score))
+
+
+def _load_state_dict(checkpoint: Path) -> dict[str, Any]:
     bin_path = checkpoint / "pytorch_model.bin"
     safe_path = checkpoint / "model.safetensors"
     if safe_path.exists():

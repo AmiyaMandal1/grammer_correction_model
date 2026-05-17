@@ -14,3 +14,5 @@ dist/
 *.egg-info/
 *.onnx
 wandb/
+eval_data/*
+!eval_data/synthetic_*.jsonl
