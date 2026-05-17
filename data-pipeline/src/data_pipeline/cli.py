@@ -139,7 +139,7 @@ def build_sft(
         retained = sum(1 for p in dedup if p.source == name)
         mb.add_source(name=name, row_count=per_source, retained=retained)
     mb.set_dedup(removed_exact=dedup_stats.removed_exact)
-    mb.set_leakage_passed(True)
+    mb.set_leakage_passed(None)
     mb.write()
     typer.echo(f"wrote {written} records to {out}")
 

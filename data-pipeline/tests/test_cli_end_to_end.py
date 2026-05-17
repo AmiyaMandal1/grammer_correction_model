@@ -42,3 +42,7 @@ def test_build_gec_only_from_local_m2(tmp_path: Path, fixtures_dir: Path) -> Non
     m = json.loads(out_manifest.read_text())
     assert "gec_tagger" in m["artifacts"]
     assert m["artifacts"]["gec_tagger"]["row_count"] == 3
+    assert m["sources"]["bea2019"]["row_count"] == 3
+    assert m["sources"]["bea2019"]["retained"] == 3
+    # No --eval-sources provided, so leakage check was not run.
+    assert m["leakage"]["passed"] is None
