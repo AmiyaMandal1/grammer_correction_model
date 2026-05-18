@@ -347,3 +347,37 @@ IN : she have a cat         OUT: She has a cat .
 5/5 grammar errors corrected (capitalization, subject-verb agreement,
 verb conjugation, past tense). Trailing-space + period artifact is from
 the BEA-2019 whitespace tokenization carried through the data-pipeline.
+
+## Negative results (2026-05-18)
+
+After v2 (F0.5 = 0.533, published to HF), three further iterations to test capacity- and data-scaling hypotheses. All underperformed v2 on the same 100-pair BEA-dev eval.
+
+### v2.1 — same data, rank 16
+
+Identical to v2 but doubled LoRA rank (8 → 16) on the same BEA + Coedit corpus (42,491 pairs), all 36 layers, 5000 iters. 29.93 M trainable vs 14.97 M.
+
+| Snapshot | F0.5 |
+|---|---|
+| iter 3,500 (best val 0.171) | **0.508** |
+| iter 5,000 (final val 0.189) | **0.517** |
+
+Both below v2's 0.533. Higher rank did not help on the 42k-pair corpus — likely overfit on the relatively small data.
+
+### v3 — added agentlans/grammar-correction (137 k pairs, mixed quality)
+
+Combined BEA (22.7k) + Coedit GEC (19.8k) + filtered agentlans (96.6k) = 139,110 pairs. Rank 16, all layers, 7500 iters target (killed at iter 2500 because val loss was bouncing 0.354–0.632).
+
+| Snapshot | F0.5 |
+|---|---|
+| iter 500 | 0.433 |
+| iter 2,000 (best val 0.354) | **0.502** |
+
+Worse than v2. agentlans data shifted the distribution away from the BEA-style minimal-edit annotations: precision held (0.572 vs v2's 0.589) but recall dropped (0.336 vs 0.386). The model learned to make fewer edits.
+
+### Lesson
+
+At this scale data quality dominates capacity. Higher LoRA rank on clean data and noisier data with the same rank both fall short of v2's clean-data-plus-default-capacity recipe. The next real lift requires **more clean minimal-edit data** (NUCLE + FCE + Lang-8 + multi-stage curriculum) — those are license-gated and were not available in this run.
+
+### v2 remains the best published model
+
+[`amiya/qwen2.5-3b-gec-v2`](https://huggingface.co/amiya/qwen2.5-3b-gec-v2) — F0.5 0.533, precision 0.589, recall 0.386.
