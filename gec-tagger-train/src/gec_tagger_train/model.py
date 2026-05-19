@@ -10,7 +10,7 @@ class DebertaTagger(nn.Module):
         self,
         *,
         num_tags: int,
-        pretrained: str = "microsoft/deberta-v3-base",
+        pretrained: str = "roberta-base",
         label_smoothing: float = 0.1,
         dropout: float = 0.1,
         pad_id: int = 0,

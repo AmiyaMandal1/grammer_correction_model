@@ -40,12 +40,13 @@ def train(
     max_length: int = typer.Option(128),
     gradient_checkpointing: bool = typer.Option(False),
     bf16: bool = typer.Option(False),
+    pretrained: str = typer.Option("roberta-base"),
 ) -> None:
     from gec_tagger_train.trainer import run_training
 
     out.mkdir(parents=True, exist_ok=True)
     vocab = TagVocab.load(tags)
-    tok = AutoTokenizer.from_pretrained("microsoft/deberta-v3-base", use_fast=True)
+    tok = AutoTokenizer.from_pretrained(pretrained, use_fast=True, add_prefix_space=True)
     ds = GECTaggerDataset(jsonl=jsonl, tokenizer=tok, vocab=vocab, max_length=max_length)
     cfg = StageConfig(
         name=f"stage{stage}",
@@ -74,6 +75,7 @@ def export(
     ),
     max_length: int = typer.Option(128),
     opset: int = typer.Option(17),
+    pretrained: str = typer.Option("roberta-base"),
 ) -> None:
     """Export checkpoint to ONNX and co-locate `tags.json` + tokenizer files in the same dir."""
     import shutil
@@ -83,7 +85,7 @@ def export(
 
     state = _load_state_dict(checkpoint)
     num_tags = int(state["classifier.weight"].shape[0])
-    model = DebertaTagger(num_tags=num_tags)
+    model = DebertaTagger(num_tags=num_tags, pretrained=pretrained)
     result = model.load_state_dict(state, strict=False)
     missing = [k for k in result.missing_keys if not k.startswith("encoder.")]
     if missing:
@@ -98,7 +100,7 @@ def export(
     shutil.copy(tags, out.parent / "tags.json")
 
     # Co-locate the DeBERTa tokenizer for the Rust runtime.
-    tok = AutoTokenizer.from_pretrained("microsoft/deberta-v3-base", use_fast=True)
+    tok = AutoTokenizer.from_pretrained(pretrained, use_fast=True, add_prefix_space=True)
     tok.save_pretrained(str(out.parent))
 
     typer.echo(f"exported ONNX to {out}; tags.json + tokenizer in {out.parent}")
@@ -127,6 +129,7 @@ def eval_cmd(
         max=10,
         help="Iterative decoding passes. GECToR convention is 3.",
     ),
+    pretrained: str = typer.Option("roberta-base"),
 ) -> None:
     """Run a tagger checkpoint on a dev JSONL and print ERRANT F0.5."""
     from gec_tagger_train.decode import apply_tags_iterative
@@ -134,11 +137,11 @@ def eval_cmd(
     from gec_tagger_train.model import DebertaTagger
 
     vocab = TagVocab.load(tags)
-    tok = AutoTokenizer.from_pretrained("microsoft/deberta-v3-base", use_fast=True)
+    tok = AutoTokenizer.from_pretrained(pretrained, use_fast=True, add_prefix_space=True)
 
     state = _load_state_dict(checkpoint)
     num_tags = int(state["classifier.weight"].shape[0])
-    model = DebertaTagger(num_tags=num_tags)
+    model = DebertaTagger(num_tags=num_tags, pretrained=pretrained)
     model.load_state_dict(state, strict=False)
     model.eval()
 
