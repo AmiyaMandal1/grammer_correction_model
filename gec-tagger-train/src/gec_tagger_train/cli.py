@@ -38,6 +38,8 @@ def train(
     per_device_batch_size: int = typer.Option(16),
     learning_rate: float = typer.Option(1e-5),
     max_length: int = typer.Option(128),
+    gradient_checkpointing: bool = typer.Option(False),
+    bf16: bool = typer.Option(False),
 ) -> None:
     from gec_tagger_train.trainer import run_training
 
@@ -55,6 +57,8 @@ def train(
         num_epochs=num_epochs,
         max_steps=max_steps,
         warmup_ratio=0.1 if max_steps < 0 else 0.0,
+        gradient_checkpointing=gradient_checkpointing,
+        bf16=bf16,
     )
     metrics = run_training(cfg=cfg, dataset=ds, vocab=vocab, tokenizer=tok)
     typer.echo(f"trained stage {stage}: {metrics}")

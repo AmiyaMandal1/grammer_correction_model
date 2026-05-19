@@ -24,6 +24,12 @@ class DebertaTagger(nn.Module):
         self.num_tags = num_tags
         self.pad_id = pad_id
 
+    def gradient_checkpointing_enable(self, **kwargs: object) -> None:
+        self.encoder.gradient_checkpointing_enable(**kwargs)
+
+    def gradient_checkpointing_disable(self) -> None:
+        self.encoder.gradient_checkpointing_disable()
+
     def forward(
         self,
         input_ids: torch.Tensor,
